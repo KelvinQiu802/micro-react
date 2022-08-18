@@ -17,4 +17,25 @@ function render(element, container) {
   container.append(dom);
 }
 
+let nextUnitOfWork = null;
+
+// 调度
+function workLoop(deadline) {
+  // shouldYield 表示线程繁忙，应该中断渲染
+  let shouldYield = false;
+  while (nextUnitOfWork && !shouldYield) {
+    nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
+    // 检查线程是否繁忙
+    shouldYield = deadline.timeRemaining() < 1;
+  }
+  // 重新请求
+  requestIdleCallback(workLoop);
+}
+
+// 请求在空闲时执行渲染
+requestIdleCallback(workLoop);
+
+// 执行一个渲染任务单元，并返回新的任务
+function performUnitOfWork(nextUnitOfWork) {}
+
 export default render;
