@@ -1,14 +1,26 @@
 import { createElement, render } from './micro-react';
 
-const element = createElement(
-  'h1',
-  { id: 'title' },
-  'Hello React',
-  createElement('a', { href: 'https://bilibili.com' }, 'Click Me!')
-);
+const handleChange = (e) => {
+  renderer(e.target.value);
+};
 
 const container = document.querySelector('#root');
 
-render(element, container);
+const renderer = (value) => {
+  console.log(1);
+  const element = createElement(
+    'div',
+    null,
+    createElement('input', {
+      value: value,
+      oninput: (e) => {
+        handleChange(e);
+      },
+    }),
+    createElement('h2', null, value)
+  );
 
-console.log(element);
+  render(element, container);
+};
+
+renderer('Hello');
