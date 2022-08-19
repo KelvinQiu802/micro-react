@@ -16,16 +16,35 @@ function createDOM(fiber) {
 // 开始渲染
 function render(element, container) {
   // Root Fiber
-  nextUnitOfWork = {
+  wipRoot = {
     dom: container,
     props: {
       children: [element],
     },
     child: null,
   };
+  nextUnitOfWork = wipRoot;
+}
+
+// 渲染Root
+// Commit Phase
+function commitRoot() {
+  commitWork(wipRoot.child);
+}
+
+// 渲染fiber
+function commitWork(fiber) {
+  if (!fiber) {
+    return;
+  }
+  const domParent = fiber.parent.dom;
+  domParent.append(fiber.dom);
+  commitWork(fiber.child);
+  commitWork(fiber.sibling);
 }
 
 let nextUnitOfWork = null;
+let wipRoot = null;
 
 // 调度
 function workLoop(deadline) {
@@ -40,6 +59,9 @@ function workLoop(deadline) {
   requestIdleCallback(workLoop);
 }
 
+if (!nextUnitOfWork && wipRoot) {
+  commitRoot();
+}
 // 请求在空闲时执行渲染
 requestIdleCallback(workLoop);
 
@@ -48,11 +70,6 @@ function performUnitOfWork(fiber) {
   // 新建DOM元素
   if (!fiber.dom) {
     fiber.dom = createDOM(fiber);
-  }
-
-  // 渲染DOM
-  if (fiber.parent) {
-    fiber.parent.dom.append(fiber.dom);
   }
 
   // 给children创建fiber
