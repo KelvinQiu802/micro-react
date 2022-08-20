@@ -1,4 +1,5 @@
 import { createElement, render } from './micro-react';
+import { useState } from './micro-react/render';
 
 const handleChange = (e) => {
   renderer(e.target.value);
@@ -25,10 +26,14 @@ const container = document.querySelector('#root');
 
 // renderer('Hello');
 
-// 函数式
-const App = (props) => {
-  return createElement('h1', null, 'Hello', props.name);
+const Counter = () => {
+  const [state, setState] = useState(1);
+  return createElement(
+    'h1',
+    { onclick: () => setState((prev) => prev + 1) },
+    state
+  );
 };
 
-const element = createElement(App, { name: 'Kelvin' }, null);
+const element = createElement(Counter);
 render(element, container);
