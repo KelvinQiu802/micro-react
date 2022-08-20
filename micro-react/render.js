@@ -84,17 +84,33 @@ function commitWork(fiber) {
   if (!fiber) {
     return;
   }
-  const domParent = fiber.parent.dom;
+
+  // 寻找最近的父DOM节点
+  let domParentFiber = fiber.parent;
+  while (!domParentFiber.dom) {
+    domParentFiber = domParentFiber.parent;
+  }
+  const domParent = domParentFiber.dom;
+
   if (fiber.effectTag === 'PLACEMENT' && fiber.dom) {
     domParent.append(fiber.dom);
   } else if (fiber.effectTag === 'DELETION' && fiber.dom) {
-    domParent.removeChild(fiber.dom);
+    commitDeletion(fiber, domParent);
   } else if (fiber.effectTag === 'UPDATE' && fiber.dom) {
     // dom，之前的props，现在的props
     updateDOM(fiber.dom, fiber.alternate.props, fiber.props);
   }
   commitWork(fiber.child);
   commitWork(fiber.sibling);
+}
+
+function commitDeletion(fiber, domParent) {
+  if (fiber.dom) {
+    domParent.removeChild(fiber.dom);
+  } else {
+    // 向下寻找最近的DOM，因为函数没有dom
+    commitDeletion(fiber.child, domParent);
+  }
 }
 
 let nextUnitOfWork = null;
@@ -128,12 +144,13 @@ requestIdleCallback(workLoop);
 
 // 执行一个渲染任务单元，并返回新的任务
 function performUnitOfWork(fiber) {
-  // 新建DOM元素
-  if (!fiber.dom) {
-    fiber.dom = createDOM(fiber);
+  const isFunctionComponent = fiber.type instanceof Function;
+  if (isFunctionComponent) {
+    updateFunctionComponent(fiber);
+  } else {
+    // 正常
+    updateHostComponent(fiber);
   }
-
-  reconcileChildren(fiber, fiber.props.children);
 
   // 如果有child，就返回child fiber
   if (fiber.child) {
@@ -150,6 +167,22 @@ function performUnitOfWork(fiber) {
     // 向上查找
     nextFiber = nextFiber.parent;
   }
+}
+
+// 处理函数式组件
+function updateFunctionComponent(fiber) {
+  const children = [fiber.type(fiber.props)];
+  reconcileChildren(fiber, children);
+}
+
+// 处理非函数式组件
+function updateHostComponent(fiber) {
+  // 新建DOM元素
+  if (!fiber.dom) {
+    fiber.dom = createDOM(fiber);
+  }
+
+  reconcileChildren(fiber, fiber.props.children);
 }
 
 function reconcileChildren(wipFiber, elements) {
